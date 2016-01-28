@@ -362,39 +362,6 @@ void loop() {
       Serial.print(my3IMU.magn_scale_z);
       Serial.print("\n");
     }
-    else if(cmd == 'C') { // check calibration values
-      Serial.print("acc offset: ");
-      Serial.print(my3IMU.acc_off_x);
-      Serial.print(",");
-      Serial.print(my3IMU.acc_off_y);
-      Serial.print(",");
-      Serial.print(my3IMU.acc_off_z);
-      Serial.print("\n");
-      
-      Serial.print("magn offset: ");
-      Serial.print(my3IMU.magn_off_x);
-      Serial.print(",");
-      Serial.print(my3IMU.magn_off_y);
-      Serial.print(",");
-      Serial.print(my3IMU.magn_off_z);
-      Serial.print("\n");
-      
-      Serial.print("acc scale: ");
-      Serial.print(my3IMU.acc_scale_x);
-      Serial.print(",");
-      Serial.print(my3IMU.acc_scale_y);
-      Serial.print(",");
-      Serial.print(my3IMU.acc_scale_z);
-      Serial.print("\n");
-      
-      Serial.print("magn scale: ");
-      Serial.print(my3IMU.magn_scale_x);
-      Serial.print(",");
-      Serial.print(my3IMU.magn_scale_y);
-      Serial.print(",");
-      Serial.print(my3IMU.magn_scale_z);
-      Serial.print("\n");
-    }
     else if(cmd == 'd') { // debugging outputs
       while(1) {
         my3IMU.getRawValues(raw_values);
