@@ -109,6 +109,13 @@ void loop() {
       Serial.print(str);
       Serial.print('\n');
     }
+    else if(cmd=='s'){
+      Serial.write(sizeof(int));
+      #ifdef TEENSYDUINO
+        //Teensy 3.2 (probably all teensy boards using Serial over USB) needs this to send a single byte now !
+        Serial.send_now();
+      #endif
+    }
     else if(cmd=='1'){
       my3IMU.init(true);
     }
