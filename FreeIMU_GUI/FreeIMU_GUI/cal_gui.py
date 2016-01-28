@@ -181,7 +181,6 @@ class FreeIMUCal(QMainWindow, Ui_FreeIMUCal):
         self.ser.write('v') # ask version
         self.set_status("Connected to: " + self.ser.readline()) # TODO: hangs if a wrong serial protocol has been loaded. To be fixed.
 
-     
         self.connectButton.setText("Disconnect")
         self.connectButton.clicked.connect(self.serial_disconnect)
         self.serialPortEdit.setEnabled(False)
@@ -388,27 +387,40 @@ class SerialWorker(QThread):
     QThread.__init__(self, parent)
     self.exiting = False
     self.ser = ser
-    
+    self.wordsize = word
     
     
   def run(self):
+
+    print "getting word size"
+    self.ser.timeout = 1
+    self.ser.write('s')
+    try:
+      self.wordsize = unpack('B', self.ser.read(1))
+      print "word size : %d" % self.wordsize
+    except:
+      print "Timeout getting word size; assuming %d" % self.wordsize
+
+    self.ser.reset_input_buffer()
+    self.ser.reset_output_buffer()
+    self.ser.timeout = None
     print "sampling start.."
     self.acc_file = open(acc_file_name, 'w')
     self.magn_file = open(magn_file_name, 'w')
     count = 100
     in_values = 9
     reading = [0.0 for i in range(in_values)]
-    # read data for calibration    
+    # read data for calibration
     while not self.exiting:
-      # determine word size   
+      # determine word size
       self.ser.write('b')
       self.ser.write(chr(count))
       for j in range(count):
         for i in range(in_values):
-          if word == 4:
+          if self.wordsize == 4:
             reading[i] = unpack('hh', self.ser.read(4))[0]
-          if word == 2:
-            reading[i] = unpack('h', self.ser.read(2))[0]            
+          if self.wordsize == 2:
+            reading[i] = unpack('h', self.ser.read(2))[0]
         self.ser.read(2) # consumes remaining '\r\n'
         # prepare readings to store on file
         acc_readings_line = "%d %d %d\r\n" % (reading[0], reading[1], reading[2])
