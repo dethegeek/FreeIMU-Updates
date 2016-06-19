@@ -2,7 +2,21 @@ FreeIMU-Updates
 ===============
 
 Change Log
-Wednesday, January 20, 2016
+Wednesday, March 29, 2016
+
+03-29-16
+Added support for the LSM9DS1 IMU using the Sparkfun Library.
+
+02-26-16
+1. Added support for the CurieImu with a 5883l magnetometer attached.
+2. Tweaked CurieImu settings
+3. Fixed Cal_Gui.py so you can calibrate just a accelerometer
+4. Modified a FreeIMU_cube_Odo_Exp_v4 processing sketch that works with Processing 3.
+
+02-05-16
+Several additional updates had to be to for the 1.6.7 IDE to work nice with the FreeIMU library.  
+
+In addition, I implemented and tested the freeimu library with the new Arduino 101 Curie board. To get working I had to make a minor modification to the CurieImu.cpp file so I created a local copy as part of the FreeIMU library :).  Additional changes were made to the FreeIMU.h and FreeIMU.cpp files.  I added two example files to the CureIMU local library that I tested with the CurieIMU.  You will have to use the FreeIMU_cube processing sketch if you are using Processing 3.0 and above.  When I have time I will post a video.
 
 01-20-16
 Updated several libraries, FreeIMU.cpp/FreeIMU.h, etc to make compatible with Arduino IDE 1.6.7.  In addition, sketches should run on all boards except for Arduino 101 which will be hit or miss depending on the IMU configuration.  Still working on this.

@@ -32,8 +32,10 @@ import processing.opengl.*;
 
 Serial myPort;  // Create object from Serial class
 
-final String serialPort = "COM4"; // replace this with your serial port. On windows you will need something like "COM1".
+final String serialPort = "COM3"; // replace this with your serial port. On windows you will need something like "COM1".
 int BaudRate=57600;
+int HAS_GPS = 0;
+
 
 //Settup Stop Watch
 StopWatchTimer sw = new StopWatchTimer();
@@ -73,6 +75,10 @@ float dt, heading;
 float[] dyn_acc = new float[3];
 float fused_alt;
 
+// GPS Variables
+float hdop, lat, longt, cog, sog, gpsalt, gpschars;
+float hdop_val, loc_val, gpsalt_val, sog_val, cog_val;
+
 float S;
 float A;
 
@@ -111,7 +117,9 @@ float [] positionZ = new float [2];
 long direction; 
 float sstatex; float sstatey;
 
-int calib = 1;
+float motionDetect_transition, motionDetect_old;
+
+int calib = 0;
 int cube_odo = 0;
 //-------------------------------------
 
@@ -129,7 +137,7 @@ void myDelay(int time) {
 
 void setup() 
 {
-  size(VIEW_SIZE_X, VIEW_SIZE_Y, OPENGL);
+  size(900, 600, OPENGL);
 
   
   myPort = new Serial(this, serialPort, BaudRate);
@@ -140,17 +148,18 @@ void setup()
   
   println("Waiting IMU..");
 
-  myPort.clear();
-  myDelay(1000);
+  myDelay(2000);
+  
   while (myPort.available() == 0) {
+    println(myPort.available());
     myPort.write("v");
+    //myPort.write("1");
     myDelay(1000);
-    sw.start();
   }
-  //println(myPort.readStringUntil('\n'));
-  myPort.write("f");
-  myPort.write("z" + char(burst));
+  
+  myPort.write("z");
   myPort.bufferUntil('\n');
+
 }
 
 float decodeFloat(String inString) {
@@ -167,41 +176,57 @@ float decodeFloat(String inString) {
   return Float.intBitsToFloat(intbits);
 }
 
+////////////////////////////////////////////////////////////////////////
 void serialEvent(Serial p) {
   if(p.available() >= 17) {
-    String inputString = p.readStringUntil('\n');
+    String inputString = p.readStringUntil('\n');  
     //print(inputString);
     if (inputString != null && inputString.length() > 0) {
       String [] inputStringArr = split(inputString, ",");
-      if(inputStringArr.length >= 17) { // q1,q2,q3,q4,\r\n so we have 5 elements
+      if(inputStringArr.length >= 18) { // q1,q2,q3,q4,\r\n so we have 5 elements
         q[0] = decodeFloat(inputStringArr[0]);
         q[1] = decodeFloat(inputStringArr[1]);
         q[2] = decodeFloat(inputStringArr[2]);
         q[3] = decodeFloat(inputStringArr[3]);
-	acc[0] = decodeFloat(inputStringArr[4]);
-	acc[1] = decodeFloat(inputStringArr[5]);
-	acc[2] = decodeFloat(inputStringArr[6]);
-	gyro[0] = decodeFloat(inputStringArr[7]);
-	gyro[1] = decodeFloat(inputStringArr[8]);
-	gyro[2] = decodeFloat(inputStringArr[9]);
-	magn[0] = decodeFloat(inputStringArr[10]);
-	magn[1] = decodeFloat(inputStringArr[11]);		
-	magn[2] = decodeFloat(inputStringArr[12]);
-	temp = decodeFloat(inputStringArr[13]);
-	press = decodeFloat(inputStringArr[14]);
+        acc[0] = decodeFloat(inputStringArr[4]);
+        acc[1] = decodeFloat(inputStringArr[5]);
+        acc[2] = decodeFloat(inputStringArr[6]);
+        gyro[0] = decodeFloat(inputStringArr[7]);
+        gyro[1] = decodeFloat(inputStringArr[8]);
+        gyro[2] = decodeFloat(inputStringArr[9]);
+        magn[0] = decodeFloat(inputStringArr[10]);
+        magn[1] = decodeFloat(inputStringArr[11]);    
+        magn[2] = decodeFloat(inputStringArr[12]);
+        temp = decodeFloat(inputStringArr[13]);
+        press = decodeFloat(inputStringArr[14]);
+        //dt = (1./decodeFloat(inputStringArr[15]))/4;
         dt = (1./decodeFloat(inputStringArr[15]));
         heading = decodeFloat(inputStringArr[16]);
+        //dt = tnew - told;
+        //told = tnew;
         if(heading < -9990) {
             heading = 0;
         }
         altitude = decodeFloat(inputStringArr[17]);
-
+        //motionDetect = decodeFloat(inputStringArr[18]);
+        
+      //read GPS
+      if(HAS_GPS == 1){
+          hdop_val = decodeFloat(inputStringArr[1]);
+          lat = decodeFloat(inputStringArr[20]);
+          longt = decodeFloat(inputStringArr[21]);
+          gpsalt = decodeFloat(inputStringArr[22]);
+          cog = decodeFloat(inputStringArr[23]);
+          sog = decodeFloat(inputStringArr[24]);
+  
+       }        
       }
     }
+    
     count = count + 1;
     if(burst == count) { // ask more data when burst completed
       //1 = RESET MPU-6050, 2 = RESET Q Matrix
-      if(key == 'q') {
+      if(key == '2') {
          myPort.clear();
          myPort.write("2");
          sw.start();
@@ -221,7 +246,8 @@ void serialEvent(Serial p) {
             key = '0';            
       } else if(key == 'R') {
             myPort.clear();
-            calib = 0;
+            //ArtHorFlg = 0;
+            calib = 1;
             sea_press = 1013.25;
             setup();
       } 
@@ -246,7 +272,7 @@ void serialEvent(Serial p) {
       }
 
       myDelay(100);
-      p.write("z" + char(burst));
+      p.write("z");
       count = 0;
     }
   }
@@ -363,6 +389,27 @@ void draw() {
   text("Gyro:\n" + nfp(gyro[0],1,6) + "\n" + nfp(gyro[1],1,6) + "\n" + nfp(gyro[2],1,6) + "\n", 20, 220);
   text("Magn:\n" + nfp(magn[0],1,6) + "\n" + nfp(magn[1],1,6) + "\n" + nfp(magn[2],1,6) + "\n", 20, 310);
 
+  if(HAS_GPS == 1){
+    fill(#ffff00);    
+    text("Latitude:\n", 700, 130 );
+    text("Long:\n", 700, 175);
+    text("CoG:\n", 700, 220);
+    text("SoG:\n", 700, 265);
+    text("GPS Alt:\n", 700, 310);  
+    
+    if(motionDetect == 0) {
+      sog = 0;
+      cog = -9999; }
+    
+    fill(#00CF00);
+    text(nfp(lat,3,5), 720, 155);
+    text(nfp(longt,3,5), 720, 200);
+    text(nfp(cog,3,2), 720, 245);
+    text(nfp(sog,3,2), 720, 290);
+    text(nfp(gpsalt,3,2), 720, 335);
+
+  }
+
   text(MotionDetect(),VIEW_SIZE_X-125,VIEW_SIZE_Y-125) ;
   if(MotionDetect() > 0 ){
     fill(#FF0000);
@@ -372,8 +419,8 @@ void draw() {
   rect(VIEW_SIZE_X-100,VIEW_SIZE_Y-100,50,50);
 
   if(cube_odo == 0) { 
-	drawCube(); }
-    else {
+     drawCube();
+    } else {
 	position();
         text("px:  " + positionX[0] + "\n" + "py:  " + positionY[0], 200, 200);
    }

@@ -44,7 +44,7 @@ calibration_h_file_name = "calibration.h"
 ##
 #####
 
-word = 2
+word = 4
 
 acc_range = 25000
 magn_range = 1500
@@ -165,7 +165,7 @@ class FreeIMUCal(QMainWindow, Ui_FreeIMUCal):
     try:
       self.ser = serial.Serial(
         port= self.serial_port,
-        baudrate=57600,
+        baudrate=115200,
         parity=serial.PARITY_NONE,
         stopbits=serial.STOPBITS_ONE,
         bytesize=serial.EIGHTBITS
@@ -410,6 +410,10 @@ class SerialWorker(QThread):
           if word == 2:
             reading[i] = unpack('h', self.ser.read(2))[0]            
         self.ser.read(2) # consumes remaining '\r\n'
+        if reading[8] == 0:
+          reading[6] = 1
+          reading[7] = 1
+          reading[8] = 1      
         # prepare readings to store on file
         acc_readings_line = "%d %d %d\r\n" % (reading[0], reading[1], reading[2])
         self.acc_file.write(acc_readings_line)
